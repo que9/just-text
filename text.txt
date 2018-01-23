@@ -1,0 +1,179 @@
+
+https://vuejsdevelopers.com/2017/03/24/vue-js-component-templates/
+
+
+
+<script src="https://unpkg.com/vue"></script>
+
+<div class="container" id="app">
+  <div>
+    <search-input></search-input>
+  </div>
+
+  <div class="col-left">
+    <ul class="list">
+      <li>
+        <label for="radioA">Radion A</label>
+        <input type="radio" value="indexA" v-model="indexRadio" id="radioA"/>
+        
+        <div class="dropdown" v-if="indexRadio == 'indexA'">          
+            <dropdowns></dropdowns>
+        </div>
+        
+      </li>
+       <li>
+        <label for="radioB">Radion B</label>
+        <input type="radio" value="indexB" id="radioB" v-model="indexRadio" />
+      </li>
+    </ul>
+  </div>
+  
+  <div class="col-right">
+    <data-table></data-table>
+  </div>
+</div>
+
+
+
+
+
+
+
+window.tableData = [
+	{name:"Apple", index:"APP", category:["asset", "commodity"]},
+  {name:"Banana", index:"BNN", category:["asset", "gold"]},
+  {name:"Mango", index:"MNG", category:["asset", "gold"]},
+  {name:"Papaya", index:"PPY", category:["gold", "nyc"]},
+  {name:"Delhi", index:"DLH", category:["gold", "nyc"]},
+  {name:"Agra", index:"AGR", category:["gold", "index"]},
+  {name:"Delhi", index:"DLH", category:["gold", "nyc"]}  
+];
+
+var bus = new Vue();
+
+Vue.component("search-input",{
+	template:'<input type="text" v-model="search" @keyup.enter="onEnter" />',
+  data:function(){
+  	return {
+  		search:""
+  	};
+  },
+  
+  methods:{
+  	onEnter:function( event ){
+    	console.log("Search this ", this.search);
+      bus.$emit("search", this.search);
+      this.search = "";
+    }
+  }
+});
+
+
+Vue.component("dropdowns", {
+	template:'<div>\
+  <select data-for="asset" v-model="ddOne" v-on:change="onChange">\
+            <option v-for="item in dOne" v-bind:value="item.value">{{item.title}}</option>\
+          </select>\
+          <select data-for="gold" v-model="ddTwo" v-on:change="onChange">\
+            <option v-for="item in dTwo" v-bind:value="item.value">{{item.title}}</option>\
+          </select>\
+					<div>ddOne - {{ddOne}}</div>\
+          <div>ddTwo - {{ddTwo}}</div>\
+          </div>',
+          
+   data:function(){
+      return {
+        ddOne:"asset",
+        ddTwo:"gold",
+
+				dOne:[
+	        { title:"Assest",   value:"asset"},
+          { title:"Commodity",value:"commodity"}, 		
+  	      { title:"Gold",     value:"gold"}
+        ],
+
+       dTwo:[
+	        { title:"Gold",  value:"gold"},
+          { title:"Index", value:"index"}, 		
+  	      { title:"NYC",   value:"nyc"}
+       ]
+      };
+   },
+   
+   methods:{
+	   onChange:function( $event ){
+     		console.log("onChange ", $event.target.getAttribute("data-for"), $event.target.value);
+        bus.$emit("filter-table", 
+        [$event.target.getAttribute("data-for"), $event.target.value])
+     }
+   }
+
+});
+
+
+Vue.component("data-table", {
+	template:'<table>\
+      <thead>\
+        <tr>\
+          <th>Ticker</th>\
+          <th>Name</th>\
+          <th>Delete ({{filteredData.length}})</th>\
+        </tr>\
+      </thead>\
+      <tbody>\
+        <tr v-for="data in filteredData">\
+          <td>{{data.index}}</td>\
+          <td>{{data.name}}</td>\
+          <td @click="deleteRow(data)">Del</td>\
+        </tr>\
+      </tbody>\
+    </table>',
+
+	data:function(){
+    return {
+      "tableData": [],
+      "filteredData":[]
+    }
+  },
+  
+  methods:{
+  	deleteRow:function( data ){
+      this.filteredData.splice( this.filteredData.indexOf( data ), 1);
+    },
+    
+    filterTable:function( category ){
+    	console.log("lets filter", category, this.tableData.length, this.filteredData.length );
+		  
+      this.filteredData =  this.tableData.filter( item => {
+      	if( item.category.indexOf( category[0] ) && ( category[0] !== category[1] ? item.category.indexOf( category[1] ) : true ) )
+					return item;
+      });
+    }
+  },
+  
+  mounted:function(){
+    console.log("mnouted\n");
+  	this.tableData = window.tableData;
+    this.filteredData = this.tableData;
+    delete window.tableData;
+  },
+  
+  created:function(){
+  	console.log("On crated\n");
+    bus.$on("search", function( data){
+    	console.log( "Lets filter here");
+    });
+    
+		bus.$on("filter-table", this.filterTable );
+   // this.filteredData = this.tableData;
+  }  
+  
+});
+
+
+new Vue({
+	el:"#app",
+  data:{
+  	indexRadio:"indexA"
+  }
+});
